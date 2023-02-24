@@ -1,5 +1,5 @@
 ---
-{"UID":20230221221115,"aliases":"背景知识,思考题,Lab3","tags":null,"source":null,"cssclass":null,"created":"2023-02-21 22:11","updated":"2023-02-23 20:14","dg-publish":true,"permalink":"/os/lab3/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230221221115,"aliases":"背景知识,思考题,Lab3","tags":null,"source":null,"cssclass":null,"created":"2023-02-21 22:11","updated":"2023-02-23 20:14","dg-publish":true,"tag":"OS","permalink":"/os/lab3/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 

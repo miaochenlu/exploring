@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/prefetcher/software-prefetcher/"}
+{"dg-publish":true,"permalink":"/prefetcher/software-prefetcher/","tags":["gardenEntry"]}
 ---
 
 # [Profile-guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)(PGO) Overview

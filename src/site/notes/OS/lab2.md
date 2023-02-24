@@ -1,10 +1,10 @@
 ---
-{"UID":20230213210113,"aliases":["Experiment Flow","思考题"],"tags":["OS"],"source":null,"cssclass":null,"created":"2023-02-15 18:50","updated":"2023-02-16 20:52","dg-publish":true,"permalink":"/os/lab2/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230213210113,"aliases":["Experiment Flow","思考题"],"tags":["OS"],"source":null,"cssclass":null,"created":"2023-02-17 22:46","updated":"2023-02-24 20:44","dg-publish":true,"permalink":"/os/lab2/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
 # Experiment Flow
-![](/img/user/OS/attachments/Pasted image 20230216202855.png)
+![Pasted image 20230216202855.png](/img/user/OS/attachments/Pasted%20image%2020230216202855.png)
 [os_lab2_flow](os_lab2_flow.md)
 
 ---

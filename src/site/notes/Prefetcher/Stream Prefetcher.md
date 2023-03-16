@@ -1,5 +1,5 @@
 ---
-{"UID":20230314111110,"aliases":"一些参数,一些定义,References,Stream Prefetcher","tags":null,"source":null,"cssclass":null,"created":"2023-03-14 11:11","updated":"2023-03-14 11:30","dg-publish":true,"permalink":"/prefetcher/stream-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230314111110,"aliases":["一些参数","一些定义","References","Stream Prefetcher"],"tags":null,"source":null,"cssclass":null,"created":"2023-03-14 11:11","updated":"2023-03-14 11:33","dg-publish":true,"permalink":"/prefetcher/stream-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 

@@ -1,5 +1,5 @@
 ---
-{"UID":20230327113328,"aliases":"成员变量","tags":null,"source":null,"cssclass":null,"created":"2023-03-27 11:33","updated":"2023-03-27 16:14","dg-publish":true,"permalink":"/prefetcher/codes/spp/ds-patch-codes/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230327113328,"aliases":["成员变量","成员变量"],"tags":null,"source":null,"cssclass":null,"created":"2023-03-27 11:33","updated":"2023-03-27 16:16","dg-publish":true,"permalink":"/prefetcher/codes/spp/ds-patch-codes/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -14,7 +14,7 @@ DSPatch_SPTEntry **spt;
 ```
 
 ## 1. PB
-![Pasted image 20230327113927.png](/img/user/Prefetcher/codes/SPP/attachments/Pasted%20image%2020230327113927.png)trigger_offset干啥的？？
+![Pasted image 20230327113927.png](/img/user/Prefetcher/codes/SPP/attachments/Pasted%20image%2020230327113927.png)
 
 ```cpp
 class DSPatch_PBEntry {

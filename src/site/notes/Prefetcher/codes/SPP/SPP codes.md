@@ -1,5 +1,5 @@
 ---
-{"UID":20230322095210,"aliases":"A. 成员变量,成员变量,SPP codes","tags":null,"source":null,"cssclass":null,"created":"2023-03-22 09:52","updated":"2023-03-26 21:49","dg-publish":true,"permalink":"/prefetcher/codes/spp/spp-codes/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230322095210,"aliases":["A. 成员变量","成员变量","SPP codes"],"tags":null,"source":null,"cssclass":null,"created":"2023-03-22 09:52","updated":"2023-05-08 20:27","dg-publish":true,"permalink":"/prefetcher/codes/spp/spp-codes/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -460,3 +460,6 @@ SignaturePathV2::handlePageCrossingLookahead(signature_t signature,
     gh_entry->confidence = path_confidence;
 }
 ```
+
+# C. SPP throttling slides
+![[prefetcher.pptx]]

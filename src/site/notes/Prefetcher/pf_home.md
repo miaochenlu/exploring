@@ -4,8 +4,9 @@
 
 
 # Paper Reading
-[[Prefetcher/Software Prefetcher\|Software Prefetcher]]
-[[Prefetcher/Temporal Prefetcher\|Temporal Prefetcher]]
+* [[Prefetcher/Software Prefetcher\|Software Prefetcher]]
+* [[Prefetcher/Temporal Prefetcher\|Temporal Prefetcher]]
+* [[Prefetcher/Spatial Prefetcher\|Spatial Prefetcher]]
 
 # Coding Reading 
 * [[Prefetcher/codes/Stride Prefetcher\|Stride Prefetcher]]

@@ -1,5 +1,5 @@
 ---
-{"UID":20230313105549,"aliases":"AMD","tags":null,"source":null,"cssclass":null,"created":"2023-03-13 10:55","updated":"2023-03-16 11:25","dg-publish":true,"permalink":"/prefetcher/prefetchers-on-commercial-cp-us/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230313105549,"aliases":"AMD","tags":null,"source":null,"cssclass":null,"created":"2023-03-13 10:55","updated":"2023-03-17 12:21","dg-publish":true,"permalink":"/prefetcher/prefetchers-on-commercial-cp-us/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -16,6 +16,29 @@ The following prefetchers are included:
  [Software optimization guide for amd epyc 7003 processors.](https://www.amd.com/system/files/TechDocs/56665.zip.)
 
 # Intel
+
+## Intel使用了哪些prefetcher
+[Disclosure of H/W prefetcher control on some Intel processors](https://radiable56.rssing.com/chan-25518398/article18-live.html)
+| Prefetcher                        | Bit# in MSR 0x1A4 | Description                                                                                                                     |
+|-----------------------------------|-------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| L2 hardware prefetcher            | 0                 | Fetches additional lines of code or data into the L2 cache                                                                      |
+| L2 adjacent cache line prefetcher | 1                 | Fetches the cache line that comprises a cache line pair (128 bytes)                                                             |
+| DCU prefetcher                    | 2                 | Fetches the next cache line into L1-D cache                                                                                     |
+| DCU IP prefetcher                 | 3                 | Uses sequential load history (based on Instruction Pointer of previous loads) to determine whether to prefetch additional lines |
+If any of the above bits are set to 1 on a core, then that particular prefetcher on that core is disabled. Clearing that bit (setting it to 0) will enable the corresponding prefetcher.
+
+
+* The algorithms found in the L1 cache hardware are the Data Cache Unit (DCU) Prefetcher (INTEL, 2019) and the DCU IP Prefetcher (INTEL, 2019). The DCU Prefetcher, also known as the streaming prefetcher, is triggered by an ascending access to very recently loaded data. The processor assumes that this access is part of a streaming algorithm and automatically fetches the next line. The DCU IP Prefetcher keeps track of individual load instructions (based on their instruction pointer value). If a load instruction is detected to have a regular stride, then a prefetch is sent to the next address which is the sum of the current address and the stride. 
+* The L2 Hardware Prefetcher (INTEL, 2019) and the L2 Adjacent Cache Prefetcher (INTEL, 2019) are the prefetcher algorithms found in the real machine L2 cache. The L2 Hardware Prefetcher monitors read requests from the L1 cache for ascending and descending sequences of addresses. Monitored read requests include L1 data cache requests initiated by load and store operations and also by the L1 prefetchers, and L1 instruction cache requests for code fetch. When a forward or backward stream of requests is detected, the anticipated cache lines are prefetched. This prefetcher may issue two prefetch requests on every L2 lookup and run up to 20 lines ahead of the load request. The L2 Adjacent Cache Prefetcher fetches two 64-byte cache lines into a 128-byte sector instead of only one, regardless of whether the additional cache line has been requested or not.
+
+![Pasted image 20230222143800.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230222143800.png)
+![Pasted image 20230222144621.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230222144621.png)
+[Fetching Title#wnft](https://software.intel.com/sites/default/files/managed/9e/bc/64-ia-32-architectures-optimization-manual.pdf)
+
+## Prefetcher Performance
+Performance: L2P > DCUI > DCUP > L2A
+为什么streamer会性能最好，难道L2A是stride prefetcher?
+![Pasted image 20230317115617.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230317115617.png)
 ## Stream Prefetcher (L2/LLC)
 * Train stream using BBL transactions
 * Read streams and send prefetch requests to L2Q
@@ -54,8 +77,8 @@ A stream has 4 states: Searching, Forward, Backward, Done
 ![Pasted image 20230314101418.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230314101418.png)
 
 * New stream create (eb_allocate_new_ms58h)
-	* page begin kickstart: Forward
-	* page end kickstart: Backward
+	* <font color="#ff0000">page begin kickstart: Forward</font>
+	* <font color="#ff0000">page end kickstart: Backward</font>
 	* Otherwise: Searching
 * Searching
 	* within_initwin_fwd: Forward
@@ -121,7 +144,7 @@ A stream has 4 states: Searching, Forward, Backward, Done
 * For Forward state, set the stream state = DONE whe the L2 home line reaches the end of the 4K page
 * For Backward state, set the stream state = DONE when the L2 home line reaches the begining of the 4K page.
 ### Bitmap Filter (For each stream)
-* Before a prefetch request is sent to L2Q, check againsga
+* Before a prefetch request is sent to L2Q, check again
 * Update the bitmap filter bit corresponding the prefetch addres
 ### L2Q credit
 * only send prefetch request to L2Q when there's L2Q credit available (eb_pref_req_credit_avail_mnnnh)
@@ -131,7 +154,7 @@ A stream has 4 states: Searching, Forward, Backward, Done
 ### Prefetcher Blocking
 ![Pasted image 20230314161154.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230314161154.png)
 
-### Intel Stream Prefetcher Reverse
+## Intel Stream Prefetcher Reverse Engineering
 [ReadPaper](https://readpaper.com/pdf-annotate/note?pdfId=4731820407082975233&noteId=1688252371593961984)
 
 #### Structure
@@ -147,6 +170,59 @@ Accesses 32 or more lines away from the last fetched line are treated differentl
 Prefetches issued will safely wrap around page limits, which may issue pointless prefetches but causes no potentially dangerous prefetches across page limits.
 The prefetcher seems to output a confidence metric used to decide whether to prefetch, but suppressed prefetches may update the prefetcher state. Lastly, the prefetcher is reluctant to start streams too close to the page end. 
 
+## AMP Prefetcher
+### Glossary
+* DetectorID(aka Stream_Tag): Page frame address, i.e. addr[51:12]
+* Offset: address offset from the page address base, i.e. addr[11:6]
+* Full_Delta: (New_offset - last_offset) (6 bit value)
+* Delta1: Bucket1(Full_Delta)
+* Delta2: Bucket2(Delta1)
+* Page History Table: Streamer entry
+* IPT: Initial Prediction Table
+* SPT: Sequence Prediction Table
+* PrefethMinCount: Confidence threshold
+
+### Data Structure
+![Pasted image 20230316150555.png|600](/img/user/Prefetcher/attachments/Pasted%20image%2020230316150555.png)
+### Delta Bucket Encoding (Index Into SPT0/SPT1)
+* FullDelta = current_offset - last_offset
+* SPT0 table has 8-entry
+	* indexed by Delta1
+* SPT1 table has 32-entry
+	* Indexed by {Delta1, Delta2}
+
+![Pasted image 20230316145042.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230316145042.png)
+
+
+### Steps
+![Pasted image 20230316150410.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316150410.png)
+![Pasted image 20230316152202.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316152202.png)
+
+![Pasted image 20230316145439.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316145439.png)
+
+
+
+![Pasted image 20230316150313.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316150313.png)
+
+
+![Pasted image 20230316152718.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316152718.png)
+
+![Pasted image 20230316152743.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316152743.png)
+
+![Pasted image 20230316153229.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316153229.png)
+
+ 
+
+![Pasted image 20230316151610.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316151610.png)
+
+
+
+![Pasted image 20230316170245.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230316170245.png)
+
+
+
+
+
 # ARM
 ## APPLE
 * DMP
@@ -154,5 +230,3 @@ The prefetcher seems to output a confidence metric used to decide whether to pre
 ## X3
 The X3 features a dozen prefetch engines.
 One new engine looks for sequences of indirect loads while the other seeks three-dimensional(spatial) patterns.
-
-![[CORTEX-X3 POWERS UP.pdf]]

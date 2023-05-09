@@ -1,5 +1,5 @@
 ---
-{"UID":20230222144915,"aliases":"AMPM,BOP,SPP (Signature Path Prefethcer),Spatial Prefetcher","tags":null,"source":null,"cssclass":null,"created":"2023-02-22 14:49","updated":"2023-05-08 10:28","dg-publish":true,"permalink":"/prefetcher/spatial-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230222144915,"aliases":["AMPM (access map pattern matching)","AMPM","BOP","SPP (Signature Path Prefethcer)","Spatial Prefetcher"],"tags":null,"source":null,"cssclass":null,"created":"2023-02-22 14:49","updated":"2023-05-09 10:49","dg-publish":true,"permalink":"/prefetcher/spatial-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -7,8 +7,47 @@
 
 [AMP Prefetcher Patent](https://patentimages.storage.googleapis.com/45/ab/ca/84001e87f345b3/US11249909.pdf)
 
-# AMPM
+# AMPM (access map pattern matching)
+[https://jilp.org/vol13/v13paper3.pdf](https://jilp.org/vol13/v13paper3.pdf)
+总体上AMPM是一个检测所有可能stride的stride prefetcher
 
+AMPM认为以前的prefetcher有几个关键问题(09年的时候)
+1. prefetcher只能检测比较简单的pattern, 所以coverage很低
+2. 在CPU使用了比较大的优化时，比如out-of-order execution, memory访问被打乱，prefetcher无法应对这种乱序
+AMPM能够比较好的处理这些问题
+* AMPM有比较好的coverage, 他其实相当于一个检测所有stride的stride prefetcher 
+* AMPM是和memory访问顺序无关的。他主要是观察在每个zone里面的访问模式
+## a. Main Com ponents 
+![Pasted image 20230509104638.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230509104638.png)
+### a.i a memory access map 
+![Pasted image 20230509102202.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230509102202.png)
+memory access map是一个bitmap的形式，但是其中的每个field都是一个状态机（访问与否，prefetch与否)。
+AMPM将Memory划分成一个一个的zone, 比如2KB划分一个zone。
+zone可以对应一个memory access map entry。zone中的每个cache line会对应到memory access map中的一个位置，对应该位置的一个状态机。
+
+其中状态机的状态转换如下图所示
+![Pasted image 20230509102432.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230509102432.png)
+### a.ii hardware pattern matching logic
+这个过程中，3个连续的zone的memory access map entry会被读入（前一个zone, 当前zone, 后一个zone），构成一个更大的memory access map。在这个map上，pattern matching logic遍历stride, 生成一些可能的prefetch requests。
+
+stride match的逻辑如下:
+t: request addr 
+N: the number of cache lines in one zone 
+k: stride 
+hardware pattern matching logic同时检测memory access map中t+k, t+2k, t+2k+1的状态(k=0,1...N/2-1)。
+如果t+k,t+2k(或者t+2k+1)处于Access state, 那么-k是一个可能的stride, t-k会成为一个prefetch candidate
+
+如下是一个例子
+0x1, 0x3, 0x4已经被访问了
+当前0x5被访问
+prefetch generator生成两个candidates
+* 0x7 (模式为0x1, 0x3, 0x5)
+* 0x6 (模式为0x3, 0x4, 0x5)
+![Pasted image 20230509104047.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230509104047.png)
+## b. Prefetch Degree Control调节逻辑
+AMPM在工作过程中会动态调节prefetch degree
+![Pasted image 20230509104856.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230509104856.png)
+![Pasted image 20230509104827.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230509104827.png)
 
 # BOP
 [https://hal.inria.fr/hal-01254863/file/BOP\_HPCA\_2016.pdf](https://hal.inria.fr/hal-01254863/file/BOP_HPCA_2016.pdf)

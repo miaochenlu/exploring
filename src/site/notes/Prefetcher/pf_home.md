@@ -1,16 +1,20 @@
 ---
-{"UID":20230224195540,"aliases":["Paper Reading","pf_home",null],"tags":null,"source":null,"cssclass":null,"created":"2023-02-24 19:55","dg-publish":true,"updated":"2023-05-08 20:23","permalink":"/prefetcher/pf-home/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230224195540,"aliases":["Paper Reading","pf_home",null],"tags":null,"source":null,"cssclass":null,"created":"2023-02-24 19:55","dg-publish":true,"updated":"2023-05-25 22:34","permalink":"/prefetcher/pf-home/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
 # Paper Reading
+[[pf_paperlist.pdf]]
+![hw_pf.png](/img/user/Prefetcher/attachments/hw_pf.png)
+* [[Prefetcher/Stride Prefetcher\|Stride Prefetcher]]
 * [[Prefetcher/Software Prefetcher\|Software Prefetcher]]
 * [[Prefetcher/Temporal Prefetcher\|Temporal Prefetcher]]
 * [[Prefetcher/Spatial Prefetcher\|Spatial Prefetcher]]
 
 # Coding Reading 
-* [[Prefetcher/codes/Stride Prefetcher\|Stride Prefetcher]]
+* [[Prefetcher/codes/Stride Prefetcher Gem5 Codes\|Stride Prefetcher Gem5 Codes]]
 * [[Prefetcher/codes/Stream Prefetcher\|Stream Prefetcher]]
+* [[Prefetcher/codes/AMPM Gem5 Codes\|AMPM Gem5 Codes]]
 * [[Prefetcher/codes/SPP/SPP codes\|SPP codes]]
 * [[Prefetcher/codes/SPP/SPP + PPF codes ChampSim\|SPP + PPF codes ChampSim]]
 * [[Prefetcher/codes/DSPatch Codes\|DSPatch Codes]]

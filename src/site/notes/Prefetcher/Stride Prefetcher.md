@@ -1,5 +1,5 @@
 ---
-{"UID":20230525210023,"aliases":["1. Stride Pattern","1. Stride Pattern","1. Stride Pattern"],"tags":null,"source":null,"cssclass":null,"created":"2023-05-25 21:00","updated":"2023-05-26 10:10","dg-publish":true,"permalink":"/prefetcher/stride-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230525210023,"aliases":["1. Stride Pattern","1. Stride Pattern","1. Stride Pattern","1. Stride Pattern"],"tags":null,"source":null,"cssclass":null,"created":"2023-05-25 21:00","updated":"2023-05-26 10:12","dg-publish":true,"permalink":"/prefetcher/stride-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
@@ -17,6 +17,8 @@
 ## 3. IP-based Stride Prefetcher
 ---
 * [SC'91 An effective on-chip preloading scheme to reduce data access penalty](https://ieeexplore.ieee.org/document/5348911)
+* [gem5/stride.hh at stable · gem5/gem5 · GitHub](https://github.com/gem5/gem5/blob/stable/src/mem/cache/prefetch/stride.hh)
+* [[Prefetcher/codes/Stride Prefetcher Gem5 Codes\|Stride Prefetcher code reading]]
 ---
 Stride Prefetcher检测所有指令之间的stride关系(global)
 IP-based Stride Prefetcher检测每条指令前后访问之间的stride关系(local)
@@ -99,6 +101,7 @@ AMPM通过如下表格中的4个统计数据来评估预取的有效性, 这些�
 ## 4.3 Overhead
 ### a. Storage
 memory access table的map array如果要hold N个states的话，size为2N(每个状态机2bits)。tag array会hold address的tag和LRU info。
+
 当AMPM使用48位地址，hold 64个states, 256个map以及8-way set-assoc和128B cacheline时，storage为 
 	256 maps * ((2 bits * 64 states)) + 35 bits (tag) + 3 bits (LRU)) = 42496 bits (~5.2KB)
      

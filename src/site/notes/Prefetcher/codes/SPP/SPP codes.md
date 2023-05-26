@@ -1,9 +1,9 @@
 ---
-{"UID":20230322095210,"aliases":["A. 成员变量","成员变量","SPP codes"],"tags":null,"source":null,"cssclass":null,"created":"2023-03-22 09:52","updated":"2023-05-08 20:27","dg-publish":true,"permalink":"/prefetcher/codes/spp/spp-codes/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230322095210,"aliases":["1. 成员变量","A. 成员变量","SPP codes"],"tags":null,"source":null,"cssclass":null,"created":"2023-03-22 09:52","updated":"2023-05-26 14:17","dg-publish":true,"permalink":"/prefetcher/codes/spp/spp-codes/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
-# A. 成员变量
+# 1. 成员变量
 
 ```cpp
 /** Signature table */
@@ -23,7 +23,7 @@ const double lookaheadConfidenceThreshold;
 Gem5中的prefetch filter不需要额外实现
 接下来展开说明signatureTable/patternTable/GHR
 
-## 1. Signature Table 
+## 1.1. Signature Table 
 用page number作为tag进行索引
 记录Last offset和signature
 ![Pasted image 20230322095800.png|200](/img/user/Prefetcher/codes/SPP/attachments/Pasted%20image%2020230322095800.png)
@@ -43,7 +43,7 @@ Gem5中的prefetch filter不需要额外实现
     AssociativeSet<SignatureEntry> signatureTable;
 ```
 
-## 2. pattern Table 
+## 1.2. pattern Table 
 以signature为tag做索引
 每个signature对应的entry会对应多个delta entry
 ![Pasted image 20230322095826.png|200](/img/user/Prefetcher/codes/SPP/attachments/Pasted%20image%2020230322095826.png)
@@ -88,7 +88,7 @@ struct PatternEntry : public TaggedEntry
 AssociativeSet<PatternEntry> patternTable;
 ```
 
-## 3. Global History Register 
+## 1.3. Global History Register 
 
 ```cpp
 /** Global History Register entry datatype */
@@ -106,7 +106,7 @@ struct GlobalHistoryEntry : public TaggedEntry
 AssociativeSet<GlobalHistoryEntry> globalHistoryRegister;
 ```
 
-# B.成员函数
+# 2. 成员函数
 核心都在`calculatePrefetch`函数
 这个函数主要分成几个阶段
 1. Learning Memory Access Patterns 
@@ -205,8 +205,8 @@ SignaturePath::calculatePrefetch(const PrefetchInfo &pfi,
 }
 ```
 
-## 1. Learning Memory Access Patterns 
-### i. 获取ST entry 
+## 2.1. Learning Memory Access Patterns 
+### a. 获取ST entry 
 
 ```cpp
 SignaturePath::SignatureEntry &
@@ -270,7 +270,7 @@ SignaturePathV2::handleSignatureTableMiss(stride_t current_block,
 }
 ```
 
-### ii. 更新PT entry
+### b. 更新PT entry
 
 ```cpp
 void
@@ -330,7 +330,7 @@ SignaturePathV2::increasePatternEntryCounter(
 }
 ```
 
-### iii. 更新ST entry
+### c. 更新ST entry
 
 ```cpp
 /**
@@ -347,15 +347,15 @@ inline signature_t updateSignature(signature_t sig, stride_t str) const {
 }
 ```
 
-## 2. Path Confidence-based Prefetching
-### i. 根据新的signature获取PT entry
+## 2.2. Path Confidence-based Prefetching
+### a. 根据新的signature获取PT entry
 
 ```cpp
 PatternEntry *current_pattern_entry =
     patternTable.findEntry(current_signature, false);
 ```
 
-### ii. 根据prefetch confidence issue prefetch 
+### b. 根据prefetch confidence issue prefetch 
 
 ```cpp
 while (current_confidence > lookaheadConfidenceThreshold) {
@@ -393,7 +393,7 @@ SignaturePathV2::calculatePrefetchConfidence(PatternEntry const &sig,
 }
 ```
 
-### iii. 根据lookahead 加深预取
+### c. 根据lookahead 加深预取
 
 ```cpp
 // Look for prefetch candidates while the current path confidence is
@@ -438,7 +438,7 @@ SignaturePathV2::calculateLookaheadConfidence(
 }
 ```
 
-### iv. 处理cross page boundary的问题
+### d. 处理cross page boundary的问题
 
 addPrefetch函数中需要处理cross page boundary的情况
 将GHR entry需要的内容记录下来
@@ -461,5 +461,5 @@ SignaturePathV2::handlePageCrossingLookahead(signature_t signature,
 }
 ```
 
-# C. SPP throttling slides
+# 3. SPP throttling slides
 ![[prefetcher.pptx]]

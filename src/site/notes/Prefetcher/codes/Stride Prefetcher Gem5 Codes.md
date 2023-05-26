@@ -1,12 +1,12 @@
 ---
-{"UID":20230425093535,"aliases":["成员变量","成员变量",""],"tags":null,"source":null,"cssclass":null,"created":"2023-04-25 09:35","updated":"2023-05-25 22:34","dg-publish":true,"permalink":"/prefetcher/codes/stride-prefetcher-gem5-codes/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20230425093535,"aliases":"1. 成员变量","tags":null,"source":null,"cssclass":null,"created":"2023-04-25 09:35","updated":"2023-05-26 10:19","dg-publish":true,"permalink":"/prefetcher/codes/stride-prefetcher-gem5-codes/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
 
-# 成员变量 
-## 1. StrideEntryTable
-strideEntry构成要给PCTable
-每个requestor会开一个PCTable
+# 1. 成员变量 
+## 1.1. StrideEntryTable
+Stride Prefetcher的主要构成是PCTable，每个requestor对应一个PCTable(线程or进程)
+而PCTable由StrideEntry构成
 
 ```cpp
 struct StrideEntry : public TaggedEntry {
@@ -22,7 +22,7 @@ typedef AssociativeSet<StrideEntry> PCTable;
 std::unordered_map<int, PCTable> pcTables;
 ```
 
-* 索引
+PCTable的索引方式
 [[Info List/About Cache\|About Cache]]
 ![Pasted image 20230425104319.png](/img/user/Prefetcher/codes/attachments/Pasted%20image%2020230425104319.png)
 

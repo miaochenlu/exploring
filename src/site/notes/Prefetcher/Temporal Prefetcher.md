@@ -1,8 +1,8 @@
 ---
-{"UID":20221024170353,"aliases":["Temporal Pattern","Category 1: Table-Based -- Markov Prefetcher","Category 1: Table-Based -- Markov Prefetcher","主题截图分享","图片按比例"],"tags":null,"source":null,"cssclass":"img-grid img-grid-ratio","created":"2023-02-21 10:12","updated":"2023-04-11 20:47","dg-publish":true,"permalink":"/prefetcher/temporal-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
+{"UID":20221024170353,"aliases":"0. Temporal Pattern","tags":null,"source":null,"cssclass":"img-grid img-grid-ratio","created":"2023-02-21 10:12","updated":"2023-05-30 16:56","dg-publish":true,"permalink":"/prefetcher/temporal-prefetcher/","dgPassFrontmatter":true,"noteIcon":""}
 ---
 
-# Temporal Pattern
+# 0. Temporal Pattern
 * Definition: a sequence of addresses that favor being accessed together and in the same order (e.g., if we observe {A; B; C; D} then it is likely for {B; C; D} to follow {A} in the future).
 * Source: loops; pointer-based structures are traversed in program
 * Shortcomings
@@ -13,108 +13,128 @@
 ![Pasted image 20230128110653.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230128110653.png)
 
 ---
+![Pasted image 20230530163957.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230530163957.png)
 
-# Category 1: Table-Based -- Markov Prefetcher
 ---
-# Category 2: GHB-Based 
-## STMS (Sampled Temporal Memory Streaming) 
 
-![Pasted image 20230128143520.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230128143520.png)
+# 1. Category 1: GHB-Based 
+## 1.1. STMS (Sampled Temporal Memory Streaming) 
+---
+* [HPCA'09 Practical Off-chip Meta-data for Temporal Memory Streaming](https://web.eecs.umich.edu/~twenisch/papers/hpca09.pdf)
+---
+在global access stream上记录address correlation (pairs of correlated address, 比如访问了A之后接下去会访问B)。然后根据address correlation来issue prefetch requests。
+STMS通过一个FIFO buffer来记录global stream的address correlation。比如一个访问序列A,B,C,D,E，这些被记录到FIFO buffer。接下来如果遇到一个A的访问，则STMS认为接下来可能会访问B
 
+### a. Structure
 ![Pasted image 20230203115638.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230203115638.png)
-
-### Structure
-* History Table: a circular FIFO buffer
-	* 每次cache miss发生，会将数据放到FIFO buffer的末尾
+* History Table: a circular FIFO buffer记录访问的addr
+	* 每次cache miss发生，会将miss数据放到FIFO buffer的末尾
 * Index Table: set-associative structure, stores a pointer for every observed miss addr to its last occurrence in the History Table
 
-### Process
-Cache miss发生的时候，prefetcher先查找index table, 找到miss addr，获取对应到history table的指针
-prefetcher找到history table中的位置，然后开始为后续地址发起prefetch请求
+### b. Process
+* Cache miss发生的时候，prefetcher先查找index table, 找到miss addr，获取对应到history table的指针
+* prefetcher找到history table中的位置，然后开始为后续地址发起prefetch请求
 
-### Comments
+### c. Comments
 * 访问速度慢，metadata traffic很大。History Table和Index Table很大，都是放在memory里面的。
 * metadata没有办法cache, 因为他是以FIFO buffer的形式存在的，但是memory访问是随机的
+![Pasted image 20230530135618.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230530135618.png)
 ---
-## Domino
-[Domino Paper](https://readpaper.com/pdf-annotate/note?pdfId=4716970745175998465)
+## 1.2. Domino
+---
+* [HPCA'18 Domino Temporal Data Prefetcher](http://cs.ipm.ac.ir/~plotfi/papers/domino_hpca18.pdf)
+---
+STMS通过一个地址来匹配GHB，这样的准确率是不够的。
+Domino优化了STMS。Domino可以使用一个或两个地址匹配GHB。
 
+如下图所示，上方A,B,C,X是一个global access stream，下方是三个GHB-based prefetcher的index table的结构。
+* STMS: 一个miss addr匹配GHB
+* Diagram: 连续两个miss addr匹配GHB
+* Domino: 二级match。第一级用第一个miss addr，第二级看第二个访问地址，匹配GHB
 ![Pasted image 20230222102526.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230222102526.png)
 
-### Structure
+### a. Structure
 * History Table (HT): a circular FIFO buffer --> in DRAM
 * Enhanced Index Table (EIT): set-associative structure, stores a pointer for every observed miss addr to its last occurrence in the History Table --> in DRAM
 ![Pasted image 20230222102505.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230222102505.png)
-Other Storage elements next to each core
-* a buffer to record the sequence of triggering events named **LogMiss** （存放两个miss entry)
-* a buffer to keep the prefetched cache blocks named **Prefetch Buffer**
-* a buffer that holds the sequence of addresses of an active stream named **PointBuf**
-* a buffer named **FetchBuf** (存放EIT的row)
 
-### Process
-Triggerring Events: cache misses & prefetch hits
+* Other Storage elements next to each core
+	* a buffer to record the sequence of triggering events named **LogMiss** （存放两个miss entry)
+	* a buffer to keep the prefetched cache blocks named **Prefetch Buffer**
+	* a buffer that holds the sequence of addresses of an active stream named **PointBuf** (存放HT的一段stream)
+	* a buffer named **FetchBuf** (存放EIT的row)
 
-#### Recording
-<font color="#2DC26B">* Triggering</font>
-Upon a triggering event, the address of the triggering event is appended to LogMiss. (LogMiss has the capacity of two cache blocks.)
-<font color="#2DC26B">* Updating HT</font>
-When one cache block worth of data is in LogMiss, Domino writes it to the end of the HT in the main memory and statistically updates the pointers of the written miss addresses in the EIT. (不是每一次都会更新EIT的)
-<font color="#2DC26B">* Updating EIT</font>
-To update the EIT, for one out of every N triggering events (e.g., eight) written into the HT, the corresponding row of the EIT is fetched into FetchBuf. 
-If a super-entry for the triggering event is not found in the fetched row, a new super-entry is allocated with the LRU policy. 
-In the chosen super-entry, Domino attempts to find an entry for the address following the triggering event. If no match is found, a new entry is allocated with LRU policy. The pointer field of the entry is updated to point to the last row of the HT. 
-Finally, Domino updates the LRU stack of entries and super-entries. Once Domino is done with the row, it is written back to the EIT.
+### b. Process
+触发prefetch的triggering event有
+* cache misses 
+* prefetch hits
 
-#### Replaying (replay first, record second)
-When the next triggering event occurs (miss or prefetch hit), Domino searches the super-entry and picks the entry for which the address field matches the triggering event (might not be the most recent entry). 
-In case no match is found, the stream is discarded. Domino uses the triggering event to bring another row from the EIT, and otherwise, Domino creates an active stream using the matched entry. It means that Domino sends a request to read the row of the HT pointed to by the pointer field of the matched entry to be brought into PointBuf. 
-Once the sequence of miss addresses from the row of the HT arrives, Domino issues prefetch requests to be appended to the Prefetch Buffer.
+#### b.i. Recording
+* <font color="#2DC26B">Triggering</font>
+	* triggering event发生，记录其addr到LogMiss (LogMiss has the capacity of two cache blocks.)
+* <font color="#2DC26B">Updating HT</font>
+	* 当LogMiss有数据的时候，Domino会将其append到HT，并且概率性的更新EIT (不是每一次都会更新EIT的)
+* <font color="#2DC26B">Updating EIT</font>
+	* N个triggering events(比如8)写到HT之后，对应的EIT row会被取到FetchBuf(如果不存在，则根据LRU policy allocate)。
+	* 在EIT super entry中，根据第二个miss addr进行查询，更新指向HT的指针(如果不存在，则在super entry中根据LRU进行替换)
+	* 最后更新entry内部的LRU和所有entry的LRU信息。最后写回memory
 
-**Find New Stream**:
-Domino prefetcher attempts to find a new stream and replaces the least-recently-used stream with it (which means discarding the contents of the prefetch buffer and PointBuf related to the replaced stream).
-To find a new stream, Domino uses the missed address to fetch a row of the EIT. 
-When the row is brought into PointBuf, Domino attempts to find the super-entry associated with the missed address. 
-In case a match is not found, nothing will be done, and otherwise, a prefetch will be sent for the address field of the most recent entry in the found super-entry to be brought into the Prefetch Buffer.
+#### b.ii. Replaying (replay first, record second)
+PointBuf存放了Domino要prefetch的address stream(从HT获取)。
+如果遇到了triggering event prefetch hit, Domino会继续prefetch PointBuf中的addr
+如果遇到了triggering event cache miss, Domino认为PointBuf中的序列需要更新，就会find a new stream。
 
-### Comments
-* Domino优化了STMS。Domino可以使用两个地址匹配GHB。
+**Find a New Stream**:
+* Domino用当前triggering evetn的addr去获取EIT row。如果获取到了EIT row, 就会根据其super entry中的most recent entry去发起prefetch请求。如果没有匹配的，就什么都不做 
+* 下一个triggering event来时，Domino查询super entry里是否匹配第二个addr。
+	* 如果没有match，Domino会放弃这个stream，并且将当前的triggering event作为首个addr再去EIT中寻找匹配的EIT row。
+	* 如果match, Domino根据EIT提供的指针去HT中获取addr stream读到PointBuf中。然后开始发起prefetch请求
 
-# Category 3: Irregular Stream Buffer
-## A. Simple ISB
-[ISB paper](https://readpaper.com/pdf-annotate/note?pdfId=4507173464930148353&noteId=1628787819386526208)
-[[Prefetcher/codes/ISB/ISB Code\|ISB Code]]
-The ISB maps **correlated physical addresses to consecutive addresses in a new address space called thestructural address space**. Thus, for ISB, a temporal stream is a sequence of consecutive structural addresses that can be prefetched using a next line prefetcher.
-ISB's organization has two benefits. 
-1. It can **combine address correlation with PC-localization**, which helps improve coverage and accuracy; PC-localization is a technique that segregates the global stream into sub-streams for each PC, such that each sub-stream is more predictable. Thus, addresses are considered to be correlated only if they appear consecutively in the PC-localized sub-stream. 
-2. **ISB's metadata can be cached** in on-chip metadata caches.
+
+# 2. Irregular Stream Buffer
+## 2.1. Simple ISB
+---
+* [MICRO'13 Linearizing Irregular Memory Accesses for Improved Correlated Prefetching](https://www.cs.utexas.edu/~lin/papers/micro13.pdf)
+* [slides](https://microarch.org/micro46/files/paper4a1_slides.pdf)
+* [Gem5 ISB codes](https://github.com/gem5/gem5/blob/stable/src/mem/cache/prefetch/irregular_stream_buffer.hh)
+* [[Prefetcher/codes/ISB/ISB Code\|ISB Code]]
+---
+
+STMS和Domino使用的都是global access stream。而ISB这篇文章认为用PC-localized stream(每一条load指令的miss stream)更好。
+![Pasted image 20230530155828.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230530155828.png)
+
+但是基于GHB的prefetcher是很难实现pc-localization的。如下图所示，用PC去index stream, pc-localized stream内部通过linked list来串联。
+![Pasted image 20230530160300.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230530160300.png)
+而ISB很好的结合了Address correlation和PC-localization。并且支持metadata的prefetch。
+ISB将correlated physical addr映射到一个新的地址空间：structural address space。Temporal stream在structural address space中地址分配的地址是连续的，能够通过Next line prefetcher进行Prefetch
 
 ![Pasted image 20230203115137.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230203115137.png)
 ![Pasted image 20230128144808.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230128144808.png)
 
-### Structure
+### a. Components
 
 ![Pasted image 20230128154912.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230128154912.png)
-#### Training Unit
+#### a.i. Training Unit: Segregates global stream by PC and assigns structural addresses
 Input
 * load PC
 * load address
-It maintains the **last observed address** in each PC-localized stream. 
-It learns pairs of correlated physical addresses and maps these to consecutive structural addresses.
 
-#### Address Mapping Caches (AMCs)
-* The Physical-to-Structural AMC (PS-AMC) stores the mapping from the physical address space to the structural address space; it is indexed by physical addresses.
-* The Structural-to-Physical AMC (SP-AMC) stores the inverse mapping as the PS-AMC and is indexed by structural addresses.
+这个模块维护PC-localized stream中每个PC最后访问的地址 last observed addr。
+当一个Input来的时候，通过Input PC匹配stream, 然后为Input Addr分配一个在last observed addr后的structural address。然后更新last observed addr为当前Input Addr。
 
-#### Stream Predictor
-Each entry in the stream predictor stores the starting structural address of the temporal stream, a counter to indicate the length of the observed stream, and a counter to indicate the current prefetch look-ahead distance.
+#### a.ii. Address Mapping Caches (AMCs)
+* **The Physical-to-Structural AMC (PS-AMC)** stores the mapping from the physical address space to the structural address space; it is indexed by physical addresses.
+* **The Structural-to-Physical AMC (SP-AMC)** stores the inverse mapping as the PS-AMC and is indexed by structural addresses.
 
-#### TLB Sync
-the ISB can cache correlation information for just the TLB resident pages and sync the management of this correlation information with TLB misses.
-The mapping from the physical address space to the structural address space is cached onchip only for pages that are resident in the TLB, and the prefetcher updates these caches during long latency TLB misses to effectively hide the latency of accessing off-chip meta-data.
+#### a.iii. Stream Predictor
+类似stream buffer
 
-### Process
+#### a.vi. TLB Sync
+ISB的cache缓存TLB resident page中的cache line的信息，并且会和TLB miss协同工作(page被evict了，则cache中的mapping被写回，page被load了，则cache会load mapping)。
+
+### b. Process
 ISB’s three key functions: training, prediction, and TLB eviction
-#### A. Training
+#### b.i. Training
 The training process assigns consecutive structural addresses to the correlated physical addresses that are observed by the training unit.
 
 Example:
@@ -125,135 +145,95 @@ When the Training Unit receives the physical address 0xca4b00 in the same locali
 3. It changes the last observed address in the Training Unit to 0xca4b00.
 
 ![Pasted image 20230128155334.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230128155334.png)
-#### B. Prediction
+#### b.ii. Prediction
 Each L2 cache access becomes a trigger address for the prefetcher, causing the PS-AMC to retrieve the trigger address’ structural address.
 ![Pasted image 20230130133929.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230130133929.png)
-### TLB evictions
+### b.iii. TLB evictions
 During a TLB eviction, the ISB writes to DRAM any modified mappings for the evicted page, and it fetches from DRAM the structural mapping for the incoming page.
 
-### Experiments
-#### Performance
-{ #be01fb}
-
-
-On a single core, the ISB exhibits an average speedup of **23.1% with 93.7% accuracy**, compared to 9.9% speedup and 64.2% accuracy for an idealized prefetcher that overapproximates the STMS prefetcher.
-![Pasted image 20230202223449.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230202223449.png)
-#### Traffic
+### c. Overhead 
+#### c.i. Traffic
 8.4% memory traffic overhead due to meta-data accesses
-#### Storage
+#### c.ii. Storage
 * For the hybrid experiments, we use an 8 KB ISB, because a 32 KB ISB provides only a small speedup improvement. 
 * For the non-hybrid experiments, we use a **32 KB ISB**, which contains a 16 KB direct-mapped PS-AMC with 32-byte cache lines, and which uses an 8-way set-associative SP-AMC with 32-byte cache lines. (map all pages in a 128 entry data TLB)
-* Offchip: It suffices to reserve for the ISB 8 MB of off-chip storage. By contrast, the GHB-based prefetchers that we simulate require up to 128 MB of off-chip storage for the same workloads. T
-#### Hybrid
-![Pasted image 20230131103149.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230131103149.png)
-
-### Comments
-* **Fit Level:** L2 Cache
-* **Strength**
-	* PC localization & address correlation
-	* Cached metadata --> fast access & less traffic
-* **Weakness**
-	* It fetches large amounts of **useless** metadata (90% of its loaded metadata is never used), which leads to poor metadata cache efficiency (30% hit rate) and high metadata traffic overhead (411% traffic overhead for irregular SPEC 2006 workloads).
-	* It does not scale to large page sizes. Because the size of the onchip cache grows with the page size, ISB is infeasible for huge pages (2MB to 1GB in size), which are orders of magnitude larger than the standard 4K page, and which are important for many programs that have large memory footprints.
-	* It does not work for modern two-level TLBs. If the metadata cache is synchronized with the L1 TLB, the latency of L2 TLB hits is too short to hide the latency of off-chip metadata requests. If the metadata cache is synchronized with the L2 TLB, the metadata cache would be impractically large—on the order of 200-400KB.
+* Offchip: It suffices to reserve for the ISB 8 MB of off-chip storage. By contrast, the GHB-based prefetchers that we simulate require up to 128 MB of off-chip storage for the same workloads.
 
 
-## B. Optimized MISB 
-[MISB paper](https://readpaper.com/pdf-annotate/note?pdfId=4716967649033060353&noteId=1628838424436038144)
-[ARM explanation](https://community.arm.com/arm-research/b/articles/posts/making-temporal-prefetchers-practical--the-misb-prefetcher)
+## 2.2. Optimized MISB 
+---
+* [ISCA'19 Efficient Metadata Management for Irregular Data Prefetching](https://www.cs.utexas.edu/~lin/papers/isca19.pdf)
+* [ARM explanation](https://community.arm.com/arm-research/b/articles/posts/making-temporal-prefetchers-practical--the-misb-prefetcher)
+---
 
-Instead of piggybacking off of the TLB, MISB uses a simple **metadata prefetcher** to load the metadata cache, and it uses an LRU replacement policy to evict lines from the metadata cache.
+MISB在ISB的基础上改进了metadata的管理方式。MISB引入了metadata prefetching
 
-### Structure
-The Training Unit finds correlated addresses within a PC-localized stream and assigns them consecutive structural addresses.
-On-chip mappings are stored in the PS and the SP caches, and on eviction, they are written to the corresponding off-chip PS and SP tables. 
-The Bloom filter tracks valid PS mappings and filters invalid off-chip requests for PS mappings.
+### a. Components
+* The Training Unit finds correlated addresses within a PC-localized stream and assigns them consecutive structural addresses.
+* On-chip mappings are stored in the PS and the SP caches, and on eviction, they are written to the corresponding off-chip PS and SP tables. 
+* The Bloom filter tracks valid PS mappings and filters invalid off-chip requests for PS mappings.
 ![Pasted image 20230129164754.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230129164754.png)
-#### Metadata Cache
+#### a.i. Metadata Cache
 * PS cache: physical -> structural
 * SP cache: structural -> physical
 
-each logical metadata cache line in MISB's PS and SP caches holds one mapping, and on an eviction, the least recently used mapping is evicted. 
+Each logical metadata cache line in MISB's PS and SP caches holds one mapping, and on an eviction, the least recently used mapping is evicted. 
 
-#### Metadata Prefetching
-on PS and SP metadata cache misses, MISB gets prefetching benefits from fetching a metadata cache line with 8 mappings.
+#### a.ii. Metadata Prefetching
+On PS and SP metadata cache misses, MISB gets prefetching benefits from fetching a metadata cache line with 8 mappings.
 
-#### Metadata Filtering
-many PS load requests are to physical addresses for which MISB has no mapping since they have never been seen before
+#### a.iii. Metadata Filtering
+Many PS load requests are to physical addresses for which MISB has no mapping since they have never been seen before.
 To filter these requests, MISB uses a Bloom Filter.
 In particular, when a new PS mapping is written to off-chip storage, the mapping is added to a Bloom filter. Future PS misses are sent to memory only if the physical address is found in the Bloom filter. 
 
-### Process
+### b. Process
 
 ![Pasted image 20230129235019.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230129235019.png)
 
-### Experiments
-
-#### Performance
-* single-core workloads
-	* MISB improves performance by 22.7%, compared to 10.6% for an idealized STMS and 4.5% for a realistic ISB
-* 4-core multi-programmed workloads
-	* MISB improves performance by 19.9%, compared to 7.5% for idealized STMS
-![Pasted image 20230202223620.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230202223620.png)
-#### Traffic
+### c. Overhead
+#### c.i. Traffic
 * single-core workloads
 	* MISB also significantly reduces off-chip traffic; for SPEC, MISB's traffic overhead of 70% is roughly one fifth of STMS's (342%) and one sixth of ISB's (411%)
-#### Storage
+#### c.ii. Storage
 **32KB for the on-chip metadata cache and 17KB for the Bloom filter** (Bloom Filter这么大吗)
 
 ![Pasted image 20230129235941.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230129235941.png)
-
-![Pasted image 20230129235933.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230129235933.png)
-### Comments
-* Fit Level: L2
-* Strength
-	* Tt dramatically reduces traffic by improving the utilization of ISB's metadata cache and by decoupling metadata cache management from the TLB
-	* MISB uses metadata prefetching to hide the latency of off-chip metadata accesses
-	* MISB is the first to filter useless metadata traffic using a Bloom filter
-* Weakness
-
-# Triage
-[Triage paper](https://readpaper.com/pdf-annotate/note?pdfId=4717976427786403841&noteId=1632874443943569152)
-[[Drawing 2023-01-31 16.57.15.excalidraw\|Drawing 2023-01-31 16.57.15.excalidraw]]
-
-Triage present a temporal prefetcher whose metadata resides entirely on chip. 
-The key insights are 
-* only a small portion of prefetcher metadata is important
-* for most workloads with irregular accesses, the benefits of an effective prefetcher outweigh the marginal benefits of a larger data cache. 
-Thus, the Triage prefetcher, identifies important metadata and uses a portion of the LLC to store this metadata, and it dynamically partitions the LLC between data and metadata.
-
+# 3. Category 3: Table-Based 
+## 3.1. Markov Prefetcher
+omit
+## 3.2. Triage
+---
+* [MICRO'19 Temporal Prefetching Without the Off-Chip Metadata](https://www.cs.utexas.edu/~akanksha/micro19triage.pdf)
+---
+Triage提出了一个metadata完全on-chip的temporal prefetcher(将metadata存储到LLC)。Triage认为绝大部分性能的提升来自一小部分metadata。
 ![Pasted image 20230131164852.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230131164852.png)
-
-
-## Process
-### I. Training
+### a. Components 
+#### a.i. Training Unit
+和ISB中的training unit类似。
+维护PC-localized stream中每个PC最后访问的地址 last observed addr。
+#### a.ii. Metadata Store
+在LLC中划分一块空间作为metadata store, 存储metadata。
+Triage以table形式存储address correlation。
 ![Pasted image 20230203133100.png|400](/img/user/Prefetcher/attachments/Pasted%20image%2020230203133100.png)
+
+### b. Process
+#### b.i. Training
+下面是一个training的例子。
+假设training unit中pc为4的stream的last observed addr是A。Input了(PC, Addr)=(4,B), 那么training unit认为A和B存在correlation, 并将这个correlation发送给Triage的metadata store
 ![Pasted image 20230131170247.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230131170247.png)
 
-### II. Prediction
+#### b.ii. Prediction
+当一个地址A来的时候，Triage搜索metadata store发现匹配项(A,B)， Triage对B发起prefetch request
 ![Pasted image 20230131170538.png|500](/img/user/Prefetcher/attachments/Pasted%20image%2020230131170538.png)
 
-### III. Metadata Replacement
+#### b.iii. Metadata Replacement
 **Hawkeye replacement policy**
 
-### IV. Metadata Partition Updates
-每隔50000次metadata access, 重新做一次way partition
+#### b.vi. Metadata Partition Updates
+每隔多少次metadata access, 重新做一次LLC的way partition，动态扩缩metadata store占用的LLC的大小。
 如果triage要扩张，那么dirty cache line被flush并且标记为invalid供triage使用
 如果triage要缩小，那么triage占用的位置被标记为invalid供llc使用
-
-### Experiments
-
-#### Performance
-On single-core systems running SPEC 2006 workloads, Triage outperforms state-of-the-art prefetchers that use only on-chip metadata (23.5% speedup for Triage vs. 5.8% for the Best Offset Prefetcher, 2.8% for SMS). 
-Triage achieves 70% of the performance of a stateof-the-art temporal prefetcher that uses off-chip metadata (23.5% for Triage vs. 34.7% for MISB).
-![Pasted image 20230203133820.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230203133820.png)
-![Pasted image 20230203134225.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230203134225.png)
-#### Storage
+### c. Overhead
+#### c.i. Storage
 Occupy LLC 512KB/1MB/Dynamic allocation
-
-#### Hybrid
-![Pasted image 20230203133953.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230203133953.png)
-![Pasted image 20230203133345.png](/img/user/Prefetcher/attachments/Pasted%20image%2020230203133345.png)
-
-### Comments
-* Fit Level: L2
